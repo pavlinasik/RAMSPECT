@@ -27,11 +27,11 @@ The following inputs are mandatory when running MCR:
 
 
 
-- `reference\_path`: path to a `.txt` file with columns RamanShift, TCP, DCP, GLY
+- `reference_path`: path to a `.txt` file with columns RamanShift, TCP, DCP, GLY
 
-- `export\_path`: base directory where results will be written
+- `export_path`: base directory where results will be written
 
-- `output\_folder`: name of the run directory inside `export\_path`
+- `output_folder`: name of the run directory inside `export_path`
 
 
 
@@ -41,13 +41,13 @@ The following inputs are mandatory when running MCR:
 
 
 
-- `reference\_path` is always required when `mcr=True`
+- `reference_path` is always required when `mcr=True`
 
-- `export\_path` and `output\_folder` are required when `export=True`
+- `export_path` and `output_folder` are required when `export=True`
 
-- `preps\_path` is used when preprocessing is skipped
+- `preps_path` is used when preprocessing is skipped
 
-- `root\_folder` is only used when `multiple=True`
+- `root_folder` is only used when `multiple=True`
 
 
 
@@ -61,21 +61,21 @@ The table below summarizes which inputs and flags are required for common workfl
 
 
 
-| Situation | `multiple` | `preps` | `mcr` | reaction / blank paths | `root\_folder` | `preps\_path` | `reference\_path` |
+| Situation | `multiple` | `preps` | `mcr` | reaction / blank paths | `root_folder` | `preps_path` | `reference_path` |
 
 |:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 
-| \*\*1)\*\* One raw reaction–blank → full pipeline | ❌ | ✅ | ✅ | ✅ | ❌ | optional | ✅ |
+| **1)** One raw reaction–blank → full pipeline | ❌ | ✅ | ✅ | ✅ | ❌ | optional | ✅ |
 
-| \*\*2)\*\* One preprocessed pair → MCR only | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **2)** One preprocessed pair → MCR only | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
 
-| \*\*3)\*\* Many raw reactions + blanks → preps + avg + MCR | ✅ | ✅ | ✅ | ❌ | ✅ | optional | ✅ |
+| **3)** Many raw reactions + blanks → preps + avg + MCR | ✅ | ✅ | ✅ | ❌ | ✅ | optional | ✅ |
 
-| \*\*4)\*\* Many processed combinations → avg + MCR | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **4)** Many processed combinations → avg + MCR | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
 
-| \*\*5)\*\* Preprocess one raw pair only (no MCR) | ❌ | ✅ | ❌ | ✅ | ❌ | optional | ❌ |
+| **5)** Preprocess one raw pair only (no MCR) | ❌ | ✅ | ❌ | ✅ | ❌ | optional | ❌ |
 
-| \*\*6)\*\* Preprocess many reactions + blanks only | ✅ | ✅ | ❌ | ❌ | ✅ | optional | ❌ |
+| **6)** Preprocess many reactions + blanks only | ✅ | ✅ | ❌ | ❌ | ✅ | optional | ❌ |
 
 
 
