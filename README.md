@@ -1,5 +1,15 @@
 # RAMspect
 
+How to start using this repository:
+
+1) Install git
+2) use cmd to set your currecnt working directory
+3) git clone https://github.com/pavlinasik/RAMSPECT/
+4) git checkout user
+5) how to update versions:
+   - git status
+   - git fetch origin
+   - git merge origin/main
 
 
 
