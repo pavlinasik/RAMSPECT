@@ -10,19 +10,13 @@ Raman spectra analysis and NNLS-MCR workflow. RAMspect provides a complete pipel
 
 
 
-* preprocessing Raman spectra (cropping, smoothing, blank subtraction),
+\- preprocessing Raman spectra (cropping, smoothing, blank subtraction)
 
+\- averaging reaction × blank combinations
 
+\- NNLS-MCR analysis using pure reference spectra
 
-* averaging reaction × blank combinations,
-
-
-
-* NNLS-MCR analysis using pure reference spectra,
-
-
-
-* visualization of concentrations and reconstructions.
+\- visualization of concentrations and reconstructions
 
 
 
@@ -30,7 +24,7 @@ Raman spectra analysis and NNLS-MCR workflow. RAMspect provides a complete pipel
 
 
 
-\### Required inputs for MCR
+\## Required inputs for MCR
 
 
 
@@ -38,9 +32,11 @@ The following inputs are mandatory when running MCR:
 
 
 
-* `reference\_path` : path to a .txt file with columns RamanShift, TCP, DCP, GLY
-* `export\_path` : base directory where results will be written
-* `output\_folder` : name of the run directory inside `export\_path`
+\- `reference\_path`: path to a `.txt` file with columns RamanShift, TCP, DCP, GLY
+
+\- `export\_path`: base directory where results will be written
+
+\- `output\_folder`: name of the run directory inside `export\_path`
 
 
 
@@ -48,14 +44,17 @@ The following inputs are mandatory when running MCR:
 
 
 
-\### General rules
+\## General rules
 
 
 
-* `reference\_path` is always required when `mcr=True`
-* `export\_path` + `output\_folder` are required when `export=True`
-* `preps\_path` is used when preprocessing is skipped
-* `root\_folder` is only used when `multiple=True`
+\- `reference\_path` is always required when `mcr=True`
+
+\- `export\_path` and `output\_folder` are required when `export=True`
+
+\- `preps\_path` is used when preprocessing is skipped
+
+\- `root\_folder` is only used when `multiple=True`
 
 
 
@@ -63,7 +62,7 @@ The following inputs are mandatory when running MCR:
 
 
 
-\### Quick decision table
+\## Quick decision table
 
 
 
@@ -86,4 +85,6 @@ The table below summarizes which inputs and flags are required for common workfl
 | \*\*5)\*\* Preprocess one raw pair only (no MCR) | ❌ | ✅ | ❌ | ✅ | ❌ | optional | ❌ |
 
 | \*\*6)\*\* Preprocess many reactions + blanks only | ✅ | ✅ | ❌ | ❌ | ✅ | optional | ❌ |
+
+
 
