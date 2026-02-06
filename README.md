@@ -2,9 +2,6 @@
 
 
 
----
-
-
 
 Raman spectra analysis and NNLS-MCR workflow. RAMspect provides a complete pipeline for:
 
@@ -19,8 +16,6 @@ Raman spectra analysis and NNLS-MCR workflow. RAMspect provides a complete pipel
 - visualization of concentrations and reconstructions
 
 
-
----
 
 
 
@@ -40,8 +35,6 @@ The following inputs are mandatory when running MCR:
 
 
 
----
-
 
 
 ## General rules
@@ -57,8 +50,6 @@ The following inputs are mandatory when running MCR:
 - `root\_folder` is only used when `multiple=True`
 
 
-
----
 
 
 
