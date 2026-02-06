@@ -63,7 +63,7 @@ The table below summarizes which inputs and flags are required for common workfl
 
 | Situation | `multiple` | `preps` | `mcr` | reaction / blank paths | `root_folder` | `preps_path` | `reference_path` |
 
-|:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+|---|---|---|---|---|---|---|---|
 
 | **1)** One raw reaction–blank → full pipeline | ❌ | ✅ | ✅ | ✅ | ❌ | optional | ✅ |
 
