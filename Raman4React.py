@@ -46,6 +46,7 @@ class PrepSettings:
     
     spectral_data_path: str
     blank_data_path: str
+    multiple: bool = False
 
     c_lower: int = 23
     c_upper: int = 571
@@ -106,6 +107,7 @@ class PreprocessConfig:
     enabled: bool = True
     spectral_data_path: str = ""
     blank_data_path: str = ""
+    multiple: bool = False
     wlength: int = 7
     porder: int = 1
 
@@ -168,18 +170,86 @@ def _save_current_figure(save: bool, out_path: str, dpi: int = 300) -> None:
 
 
 def _list_txt_files(folder: str, mode: str = "all") -> List[str]:
-    """ Return a sorted list of .txt files with optional filtering. """
-    all_txt = sorted(glob.glob(os.path.join(folder, "*.txt")))
-    
+    """
+    Return a sorted list of .txt files with optional filtering.
+
+    Modes
+    -----
+    all
+        All .txt files directly inside `folder`.
+
+    combo_first
+        If `spectra_combo.txt` exists in `folder`, return it.
+        Otherwise fall back to all .txt files.
+
+    average_only
+        Return files that look like averaged outputs:
+        - contains "avg" or "average" in filename, OR
+        - equals "spectra_combo_avg.txt"
+        If none are found in `folder`, also check `folder/average_spectra`.
+
+    multiple
+        Return exactly the averaged combo file:
+        - `spectra_combo_avg.txt`
+        If not found in `folder`, also check `folder/average_spectra`.
+    """
+    folder = os.path.abspath(folder)
+
+    def _list_here(path: str) -> List[str]:
+        return sorted(glob.glob(os.path.join(path, "*.txt")))
+
+    def _try_one_level_down(sub: str) -> str:
+        return os.path.join(folder, sub)
+
+    all_txt = _list_here(folder)
+
     if mode == "all":
         return all_txt
-    
+
+    if mode == "combo_first":
+        combo = os.path.join(folder, "spectra_combo.txt")
+        if os.path.isfile(combo):
+            return [combo]
+        return all_txt
+
     if mode == "average_only":
-        return [p for p in all_txt if "combo" in os.path.basename(p).lower()]
-    
+        def is_avg(p: str) -> bool:
+            b = os.path.basename(p).lower()
+            return (
+                b == "spectra_combo_avg.txt"
+                or "avg" in b
+                or "average" in b
+            )
+
+        hits = [p for p in all_txt if is_avg(p)]
+        if hits:
+            return hits
+
+        # common layout: combos/average_spectra/*.txt
+        avg_dir = _try_one_level_down("average_spectra")
+        if os.path.isdir(avg_dir):
+            all_txt2 = _list_here(avg_dir)
+            hits2 = [p for p in all_txt2 if is_avg(p)]
+            return hits2
+
+        return []
+
+    if mode == "multiple":
+        p = os.path.join(folder, "spectra_combo_avg.txt")
+        if os.path.isfile(p):
+            return [p]
+
+        avg_dir = _try_one_level_down("average_spectra")
+        p2 = os.path.join(avg_dir, "spectra_combo_avg.txt")
+        if os.path.isfile(p2):
+            return [p2]
+
+        return []
+
     raise ValueError(
-        f"Unknown file_mode={mode!r}. Use 'all' or 'average_only'."
-        )
+        f"Unknown file_mode={mode!r}. Use 'all', 'combo_first', 'average_only', or 'multiple'."
+    )
+
 
 
 def _load_struct_txt(path: str, delimiter: str = "\t") -> np.ndarray:
@@ -289,79 +359,63 @@ def export_spectra(
     output_dir: str = "output",
     prefix: str = "spectrum",
     combo_name: str = "spectra_combo.txt",
+    headers: str = "A",   # "A" -> Excel letters, "0" -> numbers 1..N
 ) -> None:
     """
-    Export Raman spectra into individual two-column text files and one combined 
+    Export Raman spectra into individual two-column text files and one combined
     table.
 
-    This function writes:
-      1) One text file per spectrum (sample), containing:
-         - RamanShift (x-axis)
-         - RamanIntensity (y-axis)
-         with a header line: "RamanShift<TAB>RamanIntensity"
-
-      2) One combined text file (`combo_name`) containing:
-         - First column: RamanShift
-         - Remaining columns: intensities of all spectra stacked side-by-side
-           with Excel-style headers: A, B, C, ..., Z, AA, AB, ...
-
-    The output files are tab-delimited and suitable for reading using:
-        np.genfromtxt(..., delimiter="\\t", names=True)
+    Writes:
+      1) One file per spectrum: RamanShift + RamanIntensity
+      2) One combined file: RamanShift + all spectra as columns
 
     Parameters
     ----------
     shifts : array-like or list/tuple of array-like
-        Raman shift axis (x-values). This may be passed either as:
-          - a single 1D array of length n_points, or
-          - a list/tuple whose first element is the shift array.
-        The function will internally convert it to a NumPy array.
+        Raman shift axis (x-values). Can be a 1D array, or [shift_array].
 
     spectra : array-like
-        Raman intensity values for one or more spectra.
-        Expected shape is (n_samples, n_points), but a common alternative
-        orientation (n_points, n_samples) is handled automatically by
-        transposing if needed.
-        A single spectrum may also be provided as a 1D array of length n_points.
+        Intensity matrix. Expected shape (n_samples, n_points).
+        If shape is (n_points, n_samples) it will be transposed automatically.
 
-    output_dir : str, optional
-        Output directory where files will be written. If it does not exist,
-        it will be created. Default is "output".
+    output_dir : str
+        Output directory.
 
-    prefix : str, optional
-        Prefix used for individual spectrum filenames. Files are written as:
-            {prefix}_001.txt, {prefix}_002.txt, ...
-        Default is "spectrum".
+    prefix : str
+        Prefix for individual files (prefix_001.txt, ...).
 
-    combo_name : str, optional
-        Filename for the combined spectrum table saved inside `output_dir`.
-        Default is "spectra_combo.txt".
+    combo_name : str
+        Filename for combined table.
 
-    Returns
-    -------
-    None
-        This function writes files to disk and does not return any values.
-
+    headers : str
+        Column naming mode for the combined table:
+          - "A" : Excel-style letters A, B, ..., Z, AA, ...
+          - "0" : numbers 1, 2, 3, ...
     """
     _ensure_dir(output_dir)
 
     # Normalize shift
-    shift = np.asarray(shifts[0] if isinstance(shifts, (list, tuple)) \
-                       else shifts, dtype=float)
+    shift = np.asarray(
+        shifts[0] if isinstance(shifts, (list, tuple)) else shifts, dtype=float
+        )
+    
     shift = shift[0]
+    if shift.ndim != 1:
+        raise ValueError(f"shift must be 1D, got shape {shift.shape}")
+
+    # Normalize spectra
     spectra = np.asarray(spectra, dtype=float)
     if spectra.ndim == 1:
         spectra = spectra.reshape(1, -1)
 
     # Fix common orientation issues:
-    # - expected: (n_samples, n_points)
-    # - if transpose matches, transpose
+    # expected: (n_samples, n_points)
     if spectra.shape[1] != shift.shape[0] and spectra.shape[0]==shift.shape[0]:
         spectra = spectra.T
-    
+
     if spectra.shape[1] != shift.shape[0]:
         raise ValueError(
-            f"Shift length ({shift[0].shape[0]}) does not match spectra ",
-            "points ({spectra.shape[1]})."
+            f"Shift length ({shift.shape[0]}) does not match spectra points ({spectra.shape[1]})."
         )
 
     n_samples = spectra.shape[0]
@@ -378,11 +432,10 @@ def export_spectra(
             comments="",
         )
 
-    # Combined file
+    # Combined file column headers
     def _excel_col(n: int) -> str:
         """0->A, 1->B, ... 25->Z, 26->AA, ..."""
         s = ""
-
         while True:
             n, r = divmod(n, 26)
             s = chr(ord("A") + r) + s
@@ -391,10 +444,16 @@ def export_spectra(
             n -= 1
         return s
 
-    col_headers = ["RamanShift"] + [_excel_col(i) for i in range(n_samples)]
+    if headers == "A":
+        col_headers = ["RamanShift"] + [_excel_col(i) for i in range(n_samples)]
+    elif headers == "0":
+        col_headers = ["RamanShift"] + [str(i + 1) for i in range(n_samples)]
+    else:
+        raise ValueError("headers must be 'A' (Excel letters) or '0' (numbers).")
+
     combo = np.column_stack([shift] + [spectra[i] for i in range(n_samples)])
     combo_path = os.path.join(output_dir, combo_name)
-    
+
     np.savetxt(
         combo_path,
         combo,
@@ -403,6 +462,7 @@ def export_spectra(
         header="\t".join(col_headers),
         comments="",
     )
+
 
 
 def load_saved_D(folder: str):
@@ -487,6 +547,15 @@ class Reactions:
         self,
         spectral_data_path: str,
         blank_data_path: str,
+        
+        multiple: bool = False,
+        root_folder: str | None = None,
+        reaction_token: str = "reaction",
+        blank_token: str = "blank",
+        keep_combos: bool = False,          
+        combo_name: str = "spectra_combo.txt",
+        combo_avg_name: str = "spectra_combo_avg.txt",
+
         reference_path: str | None = None,
         preps_path: str | None = None,
         export_path: str | None = None,
@@ -501,6 +570,7 @@ class Reactions:
         show: bool = False,
         save: bool = True,
         export: bool = True,
+        header: str = "0",
         messages: bool = True,
 
         # needed to avoid undefined variables in this snippet
@@ -545,6 +615,10 @@ class Reactions:
 
         blank_data_path : str
             Directory with blank spectra (.txt) files. Used when preps=True.
+        
+        multiple : bool
+            Allow averaging of all combinations of outputs for available 
+            reactions x blanks. Default is True.
 
         reference_path : str | None
             Path to pure reference spectra file for MCR. Used when MCR enabled.
@@ -580,6 +654,10 @@ class Reactions:
               - save: save figures where implemented
               - export: export spectra/tables
               - messages: print progress messages
+        
+        header : string
+            Headers for exported data. Either "0" for numerical headers, or "A"
+            for alphabetical headers (EXCEL style)
 
         c_lower/c_upper : int
             Crop indices for extract_data (preps branch).
@@ -635,10 +713,19 @@ class Reactions:
         self.export_path = export_path
         self.output_folder = output_folder
         self.reaction_type = reaction_type
+        
+        self.multiple = bool(multiple)
+        self.root_folder = root_folder
+        self.reaction_token = str(reaction_token)
+        self.blank_token = str(blank_token)
+        self.keep_combos = bool(keep_combos)
+        self.combo_name = str(combo_name)
+        self.combo_avg_name = str(combo_avg_name)
 
         self.show = show
         self.save = save
         self.export = export
+        self.header = header
         self.messages = messages
 
         # Backward-compatible resolution of mcr flag:
@@ -725,7 +812,6 @@ class Reactions:
         # flags.
         if autorun:
             self.run()
-            self.run_mcr()
 
     # -------------------------------------------------------------------------
     # Public API
@@ -740,20 +826,45 @@ class Reactions:
             self.run_mcr()
 
         return self
-
+    
     def run_preps(self) -> "Reactions":
         """ Run preprocessing (load/crop/filter/subtract/plots/specs/etc).
         Stores results on self for later use. """
         
-        self._run_preprocessing_branch()
+        if self.multiple:
+            self._run_multiple_preps_and_average_combo()
+            
+            # Averaging
+            avg_path = self._average_combo_spectra(
+                combos_root=os.path.join(self.out_dir, "combos"),   
+                combo_name="spectra_combo.txt",
+                out_folder_name="average_spectra",
+                out_name="spectra_combo_avg.txt",
+            )
+            
+            self.preps_path = os.path.dirname(avg_path)
+            self.mcr.preps_path = self.preps_path
+            self.mcr.file_mode = "multiple"  
+            
+        else:
+            self._run_preprocessing_branch()
+            
         return self
-
+    
     def run_mcr(self) -> "Reactions":
         """ Run reference/MCR branch. If possible, re-use preprocessing outputs
         if they exist; otherwise load from preps_path. """
-        
+        if self.multiple:
+            # multiple branch should already have set preps_path to avg folder
+            self.mcr.preps_path = self.preps_path
+            self.mcr.file_mode = "multiple"
+        else:
+            self.preps_path = self.preps_path or self.out_dir
+            self.mcr.preps_path = self.preps_path
+            self.mcr.file_mode = "combo_first"   # picks spectra_combo.txt if present
+    
         self._run_reference_mcr_branch()
-        return self
+        return self 
     
     
     def plot_mcr(
@@ -764,87 +875,106 @@ class Reactions:
         ncols: int = 3,
         dpi: int = 300,
         show_R2: bool = True,
-        ) -> None:
+    ) -> None:
+        
         """
         Plot MCR results from an output folder containing saved MCR artifacts.
-        
-        Expects (in input_folder):
+    
+        This method is designed for the post-processing use case where MCR has
+        already been executed and the output folder contains at least:
+    
           - concentrations.csv
           - pure_spectra.csv
           - reconstructed_spectra.csv
-          - D.npy + D_meta.npz (or whatever your loaders expect)
-        
-        Produces (in output_folder or input_folder):
-          - fractions.png
-          - intensity_stack.png
-          - combined_mcr_matrix.png
+          - saved D matrix (e.g., D.npy) and shift axis (depends on your save 
+            format)
+    
+        The method loads the stored results and generates:
+          - stacked fraction plot
+          - stacked coefficient/intensity plot
+          - original vs reconstructed subplot grid
+    
+        Parameters
+        ----------
+        input_folder : str
+            Folder that contains concentrations.csv and the other saved MCR a
+            rtifacts.
+    
+        output_folder : str | None
+            Folder where plots will be saved. If None, plots are written into
+            input_folder.
+    
+        concentrations_name : str
+            Filename of the concentration table 
+            (default: "concentrations.csv").
+    
+        ncols : int
+            Number of subplot columns in the original-vs-reconstructed plot 
+            grid.
+    
+        dpi : int
+            DPI for saved figures.
+    
+        show_R2 : bool
+            If True, annotate each subplot with R² for original+reconstructed.
         """
+        import os
+        import pandas as pd
+    
         # Validate inputs
         if not os.path.isdir(input_folder):
             raise FileNotFoundError(f"Input folder not found: {input_folder}")
-        
+    
         in_path = os.path.join(input_folder, concentrations_name)
+        
         if not os.path.isfile(in_path):
             raise FileNotFoundError(
                 f"Missing '{concentrations_name}' in: {input_folder}")
-        
+    
         # Output folder for plots
         out_dir = output_folder or input_folder
         os.makedirs(out_dir, exist_ok=True)
-        
-
+    
         # Load concentrations
-        dfC = pd.read_csv(in_path, index_col=0)
-        
-        # Normalize index labels (strip whitespace/BOM issues)
-        dfC.index = dfC.index.map(
-            lambda x: str(x).replace("\ufeff", "").strip())
-        
-        # Convert numeric columns safely (do NOT destroy index)
+        # Typical format: index is sample names; columns include TCP/DCP/GLY 
+        try:
+            dfC = pd.read_csv(in_path, index_col=0)
+        except Exception:
+            dfC = pd.read_csv(in_path)
+    
+        # Convert only numeric-looking columns; keep others if present
         for col in dfC.columns:
             dfC[col] = pd.to_numeric(dfC[col], errors="coerce")
-        
-        # Load saved artifacts
+    
+        # Derive sample_names (prefer DataFrame index if it looks like sample 
+        # labels)
+        if dfC.index is not None and \
+            dfC.index.dtype == object and \
+                dfC.index.name is not None:
+            sample_names = dfC.index.astype(str).tolist()
+        else:
+            # Fallback: if index is default RangeIndex, try a "Sample" column, 
+            # else make names
+            if "Sample" in dfC.columns:
+                sample_names = dfC["Sample"].astype(str).tolist()
+                dfC = dfC.set_index("Sample")
+            else:
+                sample_names = [f"S{i+1}" for i in range(len(dfC))]
+    
+        # Ensure dfC is indexed by sample_names for downstream plotting
+        dfC.index = dfC.index.astype(str)
+    
+        # Load saved artifacts from input_folder (NOT out_dir)
+        # These loaders should read from the folder where the artifacts are 
+        # stored.
         rxn_shift, TCP_i, DCP_i, GLY_i = load_pure_spectra(input_folder)
         _, sample_names_D, D = load_saved_D(input_folder)
         _, _, reconstructed = load_reconstructed(input_folder)
+    
+        # Prefer sample names from D if they exist and match
+        if sample_names_D and len(sample_names_D) == D.shape[0]:
+            sample_names = [str(s) for s in sample_names_D]
         
-        # Normalize sample names from D as well
-        if sample_names_D is not None:
-            sample_names_D = \
-                [str(s).replace("\ufeff", "").strip() for s in sample_names_D]
-        
-        # Decide the sample order
-        # Priority: D_meta sample_names (because D/reconstructed rows depend 
-        # on it)
-        if sample_names_D is not None and len(sample_names_D) == D.shape[0]:
-            sample_names = sample_names_D
-        else:
-            # Fallback: use dfC index as sample_names
-            sample_names = dfC.index.astype(str).tolist()
-        
-        # Align dfC to the chosen sample order.
-        # IMPORTANT: only reindex if there is overlap; otherwise keep dfC order
-        overlap = len(set(sample_names).intersection(set(dfC.index)))
-        if overlap > 0:
-            dfC = dfC.reindex(sample_names)
-        else:
-            # No overlap: keep dfC's own index to avoid all-NaN plots
-            sample_names = dfC.index.astype(str).tolist()
-        
-        # Sanity checks (fail early with a useful message)
-        if D.shape[0] != len(sample_names):
-            raise ValueError(
-                f"Mismatch: D has {D.shape[0]} rows but sample_names has ",
-                f"{len(sample_names)}.\n"
-                f"First 5 sample_names: {sample_names[:5]}"
-            )
-        if reconstructed.shape[0] != len(sample_names):
-            raise ValueError(
-                f"Mismatch: reconstructed has {reconstructed.shape[0]} rows ",
-                f"but sample_names has {len(sample_names)}."
-            )
-
         # Plot
         r4rAnal.plot_concentration_fractions(
             dfC, 
@@ -874,7 +1004,6 @@ class Reactions:
             dpi=dpi,
             show_r2=show_R2,
         )
-
 
     # -------------------------------------------------------------------------
     # Validation
@@ -1107,11 +1236,116 @@ class Reactions:
                     output_dir=self.out_dir,
                     prefix="spectrum",
                     combo_name="spectra_combo.txt",
+                    headers=self.header
                 )
                 _msg(self.io.messages, "[INFO] Export complete.")
+                
+    # -------------------------------------------------------------------------
+    # Branch 2: multiple reactions and blank folders
+    # -------------------------------------------------------------------------
+    def _run_multiple_preps_and_average_combo(self) -> None:
+        """
+        For each reaction×blank combination:
+          - run preprocessing export into a combo folder
+          - load spectra_combo.txt
+          - accumulate sum
+        Then:
+          - write spectra_combo_avg.txt
+          - set self.preps_path / self.mcr.preps_path to that averaged folder
+        """
+        rxn_folders, blk_folders = r4rProcc.discover_reaction_blank_folders(
+            root_folder=self.root_folder,
+            reaction_token=self.reaction_token,
+            blank_token=self.blank_token
+            )
+    
+        _msg(self.io.messages,
+             f"[INFO] multiple=True: found {len(rxn_folders)} reactions and {len(blk_folders)} blanks.")
+        _msg(self.io.messages, 
+             f"[INFO] Will compute {len(rxn_folders) * len(blk_folders)} reaction×blank combinations.")
+    
+        combos_root = os.path.join(self.out_dir, "combos")
+        avg_root = os.path.join(self.out_dir, "average_spectra")
+        os.makedirs(combos_root, exist_ok=True)
+        os.makedirs(avg_root, exist_ok=True)
+    
+        sum_M = None
+        ref_shift = None
+        ref_cols = None
+        n_combo = 0
+    
+        # Loop combinations
+        for rpath in rxn_folders:
+            for bpath in blk_folders:
+                rname = os.path.basename(rpath)
+                bname = os.path.basename(bpath)
+    
+                combo_dir = os.path.join(combos_root, f"{rname}__{bname}")
+                os.makedirs(combo_dir, exist_ok=True)
+    
+                # Temporarily point prep paths to this pair
+                self.prep.spectral_data_path = rpath
+                self.prep.blank_data_path = bpath
+    
+                # Temporarily export into combo_dir
+                # We keep your existing export_spectra() call by switching self.out_dir
+                old_out_dir = self.out_dir
+                self.out_dir = combo_dir
+                try:
+                    self._run_preprocessing_branch()
+                finally:
+                    self.out_dir = old_out_dir
+    
+                combo_path = os.path.join(combo_dir, self.combo_name)
+                shift, M, cols = r4rProcc.load_combo_table(combo_path)
+    
+                # Initialize reference layout from first combo
+                if ref_shift is None:
+                    ref_shift = shift
+                    ref_cols = cols
+                    sum_M = np.zeros_like(M, dtype=float)
+                else:
+                    # Ensure same columns
+                    if cols != ref_cols:
+                        raise ValueError(
+                            f"Sample columns mismatch between combos.\n"
+                            f"Expected: {ref_cols}\nGot: {cols}\nIn file: {combo_path}"
+                        )
+                    # Ensure same shift grid (if not, interpolate)
+                    if shift.shape != ref_shift.shape or np.max(np.abs(shift - ref_shift)) > 1e-9:
+                        # interpolate each column onto ref_shift
+                        M_interp = np.zeros((ref_shift.size, M.shape[1]), dtype=float)
+                        for j in range(M.shape[1]):
+                            M_interp[:, j] = np.interp(ref_shift, shift, M[:, j])
+                        M = M_interp
+    
+                sum_M += M
+                n_combo += 1
+    
+                if not self.keep_combos:
+                    # Optionally remove per-combo outputs to save disk.
+                    # Keep folder but remove big files, or skip deletion entirely.
+                    pass
+    
+        if n_combo == 0:
+            raise ValueError("No combinations processed (unexpected).")
+    
+        avg_M = sum_M / float(n_combo)
+    
+        avg_combo_path = os.path.join(avg_root, self.combo_avg_name)
+        r4rProcc.save_combo_table(avg_combo_path, ref_shift, avg_M, ref_cols)
+    
+        _msg(self.io.messages, f"[INFO] Saved averaged combo: {avg_combo_path}")
+    
+        # Point MCR input to this averaged folder
+        self.avg_combo_dir = avg_root
+        self.preps_path = avg_root
+        self.mcr.preps_path = avg_root
+        self.mcr.file_mode = "multiple"
+
 
     # -------------------------------------------------------------------------
-    # Branch 2: reference/MCR
+    # Branch 3: reference/MCR
     # -------------------------------------------------------------------------
 
     def _run_reference_mcr_branch(self) -> None:
@@ -1359,3 +1593,143 @@ class Reactions:
                 os.path.join(out_dir, "pure_spectra.csv"), 
                 index=True
                 )
+
+                
+    def _average_combo_spectra(
+        self,
+        combos_root: str,
+        combo_name: str = "spectra_combo.txt",
+        out_folder_name: str = "average_spectra",
+        out_name: str = "spectra_combo_avg.txt",
+        delimiter: str = "\t",
+    ) -> str:
+        """
+        Average spectra_combo.txt across multiple combination subfolders.
+    
+        Parameters
+        ----------
+        combos_root : str
+            Folder containing subfolders, each with `combo_name`.
+            Example: self.out_dir / "combos"
+    
+        combo_name : str
+            Name of the combo table file inside each subfolder.
+    
+        out_folder_name : str
+            Output folder created inside combos_root where averaged file is 
+            stored.
+    
+        out_name : str
+            Filename for the averaged combo file.
+    
+        delimiter : str
+            Delimiter used in combo files.
+    
+        Returns
+        -------
+        str
+            Path to the averaged combo file.
+        """    
+        # Find all combo files in subfolders
+        pattern = os.path.join(combos_root, "*", combo_name)
+        combo_files = sorted(glob.glob(pattern))
+        
+        if not combo_files:
+            raise FileNotFoundError(
+                f"No '{combo_name}' found under: {combos_root}\n"
+                f"Expected pattern: {pattern}"
+            )
+    
+        _msg(self.io.messages, 
+             f"[INFO] Averaging {len(combo_files)} combo files..."
+             )
+    
+        # Load first file to define shift + headers
+        first = np.genfromtxt(
+            combo_files[0], 
+            delimiter=delimiter, 
+            names=True, 
+            dtype=float
+            )
+        
+        names = list(first.dtype.names)
+    
+        if "RamanShift" not in names:
+            raise ValueError(
+                f"Missing RamanShift in {combo_files[0]}. Columns: {names}")
+    
+        shift = np.asarray(first["RamanShift"], dtype=float)
+        data_cols = [c for c in names if c != "RamanShift"]
+        if not data_cols:
+            raise ValueError(
+                f"No spectra columns found in {combo_files[0]}. Columns: {names}"
+                )
+    
+        # stack intensity matrices: (n_files, n_points, n_cols)
+        mats = []
+        for fp in combo_files:
+            arr = np.genfromtxt(
+                fp, 
+                delimiter=delimiter, 
+                names=True, 
+                dtype=float
+                )
+            
+            n2 = list(arr.dtype.names)
+    
+            if "RamanShift" not in n2:
+                raise ValueError(f"Missing RamanShift in {fp}. Columns: {n2}")
+    
+            # verify shift compatibility (strict)
+            shift2 = np.asarray(arr["RamanShift"], dtype=float)
+            if shift2.shape != shift.shape or not np.allclose(
+                    shift2, shift, rtol=0, atol=1e-10
+                    ):
+                
+                raise ValueError(
+                    f"RamanShift mismatch between files.\n"
+                    f"First: {combo_files[0]}\n"
+                    f"Mismatch: {fp}"
+                )
+    
+            cols2 = [c for c in n2 if c != "RamanShift"]
+            if cols2 != data_cols:
+                raise ValueError(
+                    f"Column mismatch in {fp}.\n"
+                    f"Expected: {data_cols}\n"
+                    f"Got: {cols2}"
+                )
+    
+            mat = np.column_stack(
+                [np.asarray(arr[c], dtype=float) for c in data_cols]
+                )  # (n_points, n_cols)
+            mats.append(mat)
+    
+        mats = np.stack(mats, axis=0)  # (n_files, n_points, n_cols)
+        mat_avg = np.mean(mats, axis=0)  # (n_points, n_cols)
+    
+        # write averaged combo file
+        out_dir = os.path.join(combos_root, out_folder_name)
+        os.makedirs(out_dir, exist_ok=True)
+    
+        out_path = os.path.join(out_dir, out_name)
+        out_data = np.column_stack([shift, mat_avg])  # (n_points, 1+n_cols)
+    
+        header = delimiter.join(["RamanShift"] + data_cols)
+    
+        np.savetxt(
+            out_path,
+            out_data,
+            delimiter=delimiter,
+            fmt="%.6f",
+            header=header,
+            comments="",
+        )
+    
+        _msg(
+            self.io.messages, f"[INFO] Averaged combo saved: {out_path}"
+            )
+        return out_path
+    
+                    
+    

@@ -535,12 +535,11 @@ def plot_actual_intensities(
     plt.close(fig)
 
 
-
 def plot_original_vs_reconstructed(
     dfC, reconstructed, D, rxn_shift,
     TCP_i, DCP_i, GLY_i,
     sample_names, out_dir,
-    ncols=3,                 
+    ncols=3,                 # FIXED COLUMNS (default 3)
     dpi=300,
     show_r2=True,
     font_scale=1.35

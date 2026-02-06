@@ -1239,5 +1239,85 @@ def export_spectra(shifts, spectra, output_dir="output", prefix="spectrum",
     )
 
 
+def discover_reaction_blank_folders(
+        root_folder, 
+        reaction_token, 
+        blank_token
+        ) -> tuple[list[str], list[str]]:
+    """ Discover reaction/blank subfolders under self.root_folder using 
+    tokens. """
+    
+    if not root_folder or not os.path.isdir(root_folder):
+        raise FileNotFoundError(
+            "multiple=True requires root_folder to be an existing ",
+            f"directory. Got: {root_folder}"
+        )
+
+    subdirs = [
+        os.path.join(root_folder, d)
+        for d in os.listdir(root_folder)
+        if os.path.isdir(os.path.join(root_folder, d))
+    ]
+
+    rxn = [p for p in subdirs if \
+           reaction_token.lower() in os.path.basename(p).lower()]
+    blk = [p for p in subdirs if \
+           blank_token.lower() in os.path.basename(p).lower()]
+
+    rxn.sort()
+    blk.sort()
+
+    if not rxn:
+        raise ValueError(
+            f"No reaction folders found in {root_folder} with token '{reaction_token}'"
+            )
+    if not blk:
+        raise ValueError(
+            f"No blank folders found in {root_folder} with token '{blank_token}'"
+            )
+    return rxn, blk
+
+
+def load_combo_table(combo_path: str) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """
+    Load spectra_combo.txt-like file:
+      - first col: RamanShift
+      - remaining cols: samples (A,B,C... or 1,2,3...)
+    Returns:
+      shift: (n_points,)
+      M: (n_points, n_samples)
+      sample_cols: list[str]
+    """
+    import pandas as pd
+
+    if not os.path.isfile(combo_path):
+        raise FileNotFoundError(f"Combo file not found: {combo_path}")
+
+    df = pd.read_csv(combo_path, sep="\t", header=0)
+    cols = list(df.columns)
+
+    if not cols or cols[0].strip() != "RamanShift":
+        raise ValueError(f"First column must be 'RamanShift'. Got columns: {cols}")
+
+    shift = df["RamanShift"].to_numpy(dtype=float)
+
+    sample_cols = cols[1:]
+    if not sample_cols:
+        raise ValueError(f"No sample columns found in combo file: {combo_path}")
+
+    M = df[sample_cols].to_numpy(dtype=float)  # (n_points, n_samples)
+    return shift, M, sample_cols
+
+
+def save_combo_table(out_path: str, shift: np.ndarray, M: np.ndarray, sample_cols: list[str]) -> None:
+    """
+    Save combo table with header: RamanShift + sample_cols.
+    M is (n_points, n_samples).
+    """
+    header = "\t".join(["RamanShift"] + list(sample_cols))
+    data = np.column_stack([shift, M])
+
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    np.savetxt(out_path, data, fmt="%.6f", delimiter="\t", header=header, comments="")
 
 
