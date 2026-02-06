@@ -1,82 +1,53 @@
-RAMspect
+\# RAMspect
 
 
 
-Raman spectra analysis and NNLS-MCR workflow
+Raman spectra analysis and NNLS-MCR workflow. RAMspect provides a complete pipeline for:
 
 
 
-RAMspect provides a complete pipeline for:
+* preprocessing Raman spectra (cropping, smoothing, blank subtraction),
 
 
 
-preprocessing Raman spectra (cropping, smoothing, blank subtraction),
+* averaging reaction × blank combinations,
 
 
 
-averaging reaction × blank combinations,
+* NNLS-MCR analysis using pure reference spectra,
 
 
 
-NNLS-MCR analysis using pure reference spectra,
+* visualization of concentrations and reconstructions.
 
 
 
-visualization of concentrations and reconstructions.
-
-
-
-Required inputs for MCR
-
-
+\### Required inputs for MCR
 
 The following inputs are mandatory when running MCR:
 
 
 
-reference\_path
-
-Path to a .txt file with columns:
-
-RamanShift, TCP, DCP, GLY
+* `reference\_path` : path to a .txt file with columns RamanShift, TCP, DCP, GLY
+* `export\_path` : base directory where results will be written
+* `output\_folder` : name of the run directory inside `export\_path`
 
 
 
-export\_path
-
-Base directory where results will be written
 
 
+\### General rules
 
-output\_folder
-
-Name of the run directory inside export\_path
-
-(recommended short name, e.g. run\_01)
+* `reference\_path` is always required when `mcr=True`
+* `export\_path` + `output\_folder` are required when `export=True`
+* `preps\_path` is used when preprocessing is skipped
+* `root\_folder` is only used when `multiple=True`
 
 
 
-General rules
+\### Quick decision table
 
 
-
-reference\_path is always required when mcr=True
-
-
-
-export\_path + output\_folder are required when export=True
-
-
-
-preps\_path is used when preprocessing is skipped
-
-
-
-root\_folder is only used when multiple=True
-
-
-
-Quick decision table
 
 |                                              Situation | multiple | preps | mcr | reaction/blank paths | root\_folder | preps\_path | reference\_path |
 
