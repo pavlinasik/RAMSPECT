@@ -1,4 +1,8 @@
-\#RAMspect
+\# RAMspect
+
+
+
+---
 
 
 
@@ -22,7 +26,13 @@ Raman spectra analysis and NNLS-MCR workflow. RAMspect provides a complete pipel
 
 
 
-\###Required inputs for MCR
+---
+
+
+
+\### Required inputs for MCR
+
+
 
 The following inputs are mandatory when running MCR:
 
@@ -34,9 +44,13 @@ The following inputs are mandatory when running MCR:
 
 
 
+---
+
 
 
 \### General rules
+
+
 
 * `reference\_path` is always required when `mcr=True`
 * `export\_path` + `output\_folder` are required when `export=True`
@@ -45,7 +59,13 @@ The following inputs are mandatory when running MCR:
 
 
 
-\###Quick decision table
+---
+
+
+
+\### Quick decision table
+
+
 
 The table below summarizes which inputs and flags are required for common workflows.
 
