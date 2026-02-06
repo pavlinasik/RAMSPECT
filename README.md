@@ -1,100 +1,98 @@
-# \# RAMspect
+RAMspect
 
-# 
 
-# Raman spectra analysis and NNLS-MCR workflow.
 
-# 
+Raman spectra analysis and NNLS-MCR workflow
 
-# This package supports:
 
-# \- preprocessing of raw Raman spectra (cropping, smoothing, blank subtraction),
 
-# \- optional averaging across reaction × blank combinations,
+RAMspect provides a complete pipeline for:
 
-# \- NNLS-MCR analysis using pure reference spectra,
 
-# \- automated plotting of concentrations and reconstructions.
 
-# 
+preprocessing Raman spectra (cropping, smoothing, blank subtraction),
 
-# ---
 
-# 
 
-# \## Required inputs for MCR
+averaging reaction × blank combinations,
 
-# 
 
-# The following inputs are \*\*mandatory\*\* when running MCR:
 
-# 
+NNLS-MCR analysis using pure reference spectra,
 
-# \- \*\*`reference\_path`\*\*  
 
-# &nbsp; Path to a pure spectra `.txt` file containing columns:  
 
-# &nbsp; `RamanShift`, `TCP`, `DCP`, `GLY`
+visualization of concentrations and reconstructions.
 
-# 
 
-# \- \*\*`export\_path`\*\*  
 
-# &nbsp; Base directory where results will be written
+Required inputs for MCR
 
-# 
 
-# \- \*\*`output\_folder`\*\*  
 
-# &nbsp; Name of the run directory inside `export\_path`  
+The following inputs are mandatory when running MCR:
 
-# &nbsp; (recommended short name, e.g. `run\_01`)
 
-# 
 
-# ---
+reference\_path
 
-# 
+Path to a .txt file with columns:
 
-# \## General rules
+RamanShift, TCP, DCP, GLY
 
-# 
 
-# \- `reference\_path` is \*\*always required\*\* for `mcr=True`
 
-# \- `export\_path + output\_folder` are required if `export=True`
+export\_path
 
-# \- `preps\_path` is used when preprocessing is skipped
+Base directory where results will be written
 
-# \- `root\_folder` is only used when `multiple=True`
 
-# 
 
-# ---
+output\_folder
 
-# 
+Name of the run directory inside export\_path
 
-# \## Quick decision table
+(recommended short name, e.g. run\_01)
 
-# 
 
-# | Situation | `multiple` | `preps` | `mcr` | reaction / blank paths | `root\_folder` | `preps\_path` | `reference\_path` |
 
-# |---------:|:----------:|:-------:|:-----:|:----------------------:|:-------------:|:------------:|:----------------:|
+General rules
 
-# | \*\*1)\*\* One raw reaction–blank → full pipeline | ❌ | ✅ | ✅ | ✅ yes | ❌ | optional | ✅ |
 
-# | \*\*2)\*\* One preprocessed pair → MCR only | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
 
-# | \*\*3)\*\* Many raw reactions + blanks → preps + avg + MCR | ✅ | ✅ | ✅ | ❌ | ✅ | optional | ✅ |
+reference\_path is always required when mcr=True
 
-# | \*\*4)\*\* Many processed combos → avg + MCR | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
 
-# | \*\*5)\*\* Preprocess one pair only (no MCR) | ❌ | ✅ | ❌ | ✅ yes | ❌ | optional | ❌ |
 
-# | \*\*6)\*\* Preprocess many reactions + blanks only | ✅ | ✅ | ❌ | ❌ | ✅ | optional | ❌ |
+export\_path + output\_folder are required when export=True
 
-# 
 
-# ---
+
+preps\_path is used when preprocessing is skipped
+
+
+
+root\_folder is only used when multiple=True
+
+
+
+Quick decision table
+
+|                                              Situation | multiple | preps | mcr | reaction/blank paths | root\_folder | preps\_path | reference\_path |
+
+| -----------------------------------------------------: | :------: | :---: | :-: | :------------------: | :---------: | :--------: | :------------: |
+
+|          \*\*1)\*\* One raw reaction–blank → full pipeline |     ❌    |   ✅   |  ✅  |           ✅          |      ❌      |  optional  |        ✅       |
+
+|        \*\*2)\*\* One pair already preprocessed → MCR only |     ❌    |   ❌   |  ✅  |           ❌          |      ❌      |      ✅     |        ✅       |
+
+| \*\*3)\*\* Many raw reactions + blanks → preps + avg + MCR |     ✅    |   ✅   |  ✅  |           ❌          |      ✅      |  optional  |        ✅       |
+
+|         \*\*4)\*\* Many processed combinations → avg + MCR |     ✅    |   ❌   |  ✅  |           ❌          |      ❌      |      ✅     |        ✅       |
+
+|           \*\*5)\*\* Preprocess one raw pair only (no MCR) |     ❌    |   ✅   |  ❌  |           ✅          |      ❌      |  optional  |        ❌       |
+
+|         \*\*6)\*\* Preprocess many reactions + blanks only |     ✅    |   ✅   |  ❌  |           ❌          |      ✅      |  optional  |        ❌       |
+
+
 
