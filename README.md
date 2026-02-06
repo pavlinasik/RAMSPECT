@@ -1,49 +1,100 @@
-# RAMspect
+# \# RAMspect
 
-Raman spectra analysis. 
+# 
 
-Below is a user-guide.
+# Raman spectra analysis and NNLS-MCR workflow.
 
+# 
 
+# This package supports:
 
+# \- preprocessing of raw Raman spectra (cropping, smoothing, blank subtraction),
 
+# \- optional averaging across reaction × blank combinations,
 
-Required inputs for MCR
+# \- NNLS-MCR analysis using pure reference spectra,
 
------------------------
+# \- automated plotting of concentrations and reconstructions.
 
-* `reference\_path` : path to the pure spectra .TXT with columns RamanShift, TCP, DCP, GLY
-* `export\_path`    : base folder where results are written
-* `output\_folder`  : name of a run folder inside export\_path (recommend a short name like "run\_01")
+# 
 
+# ---
 
+# 
 
+# \## Required inputs for MCR
 
+# 
 
-Quick decision table
+# The following inputs are \*\*mandatory\*\* when running MCR:
 
---------------------
+# 
 
-* `reference\_path` required for mcr analysis
-* `export\_path` + `output\_folder` required if `export=True`
+# \- \*\*`reference\_path`\*\*  
 
+# &nbsp; Path to a pure spectra `.txt` file containing columns:  
 
+# &nbsp; `RamanShift`, `TCP`, `DCP`, `GLY`
 
-| Situation                                       | `multiple` | `preps`  | `mcr` | reaction/blank paths?  | `root\_folder`?  | `preps\_path?`  | `reference\_path?`  |
+# 
 
-| ----------------------------------------------: | ---------: | -------: | ----: | ---------------------: | --------------: | -------------: | -----------------: |
+# \- \*\*`export\_path`\*\*  
 
-| 1) One pair raw → full pipeline                 |  False     | True     | True  | ✅ yes                 | ❌             | optional       | ✅ yes             |
+# &nbsp; Base directory where results will be written
 
-| 2) One pair already preprocessed → MCR only     |  False     | False    | True  | ❌                     | ❌             | ✅ yes         | ✅ yes            |     
+# 
 
-| 3) Many reactions+blanks raw → preps+avg+MCR    |  True      | True     | True  | ❌                     | ✅ yes         | optional       | ✅ yes             |
+# \- \*\*`output\_folder`\*\*  
 
-| 4) Many combos already processed → avg+MCR      |  True      | False    | True  | ❌                     | ❌             | ✅ yes         | ✅ yes            |
+# &nbsp; Name of the run directory inside `export\_path`  
 
-| 5) Preprocess one pair raw, no MCR              |  False     | True     | False | ✅ yes                 | ❌             | optional       | ❌                 |
+# &nbsp; (recommended short name, e.g. `run\_01`)
 
-| 6) Preprocess Many reactions+blanks raw, no MCR |  True      | True     | False | ❌                     | ✅ yes         | optional       | ❌                 |
+# 
 
+# ---
 
+# 
+
+# \## General rules
+
+# 
+
+# \- `reference\_path` is \*\*always required\*\* for `mcr=True`
+
+# \- `export\_path + output\_folder` are required if `export=True`
+
+# \- `preps\_path` is used when preprocessing is skipped
+
+# \- `root\_folder` is only used when `multiple=True`
+
+# 
+
+# ---
+
+# 
+
+# \## Quick decision table
+
+# 
+
+# | Situation | `multiple` | `preps` | `mcr` | reaction / blank paths | `root\_folder` | `preps\_path` | `reference\_path` |
+
+# |---------:|:----------:|:-------:|:-----:|:----------------------:|:-------------:|:------------:|:----------------:|
+
+# | \*\*1)\*\* One raw reaction–blank → full pipeline | ❌ | ✅ | ✅ | ✅ yes | ❌ | optional | ✅ |
+
+# | \*\*2)\*\* One preprocessed pair → MCR only | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
+
+# | \*\*3)\*\* Many raw reactions + blanks → preps + avg + MCR | ✅ | ✅ | ✅ | ❌ | ✅ | optional | ✅ |
+
+# | \*\*4)\*\* Many processed combos → avg + MCR | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
+
+# | \*\*5)\*\* Preprocess one pair only (no MCR) | ❌ | ✅ | ❌ | ✅ yes | ❌ | optional | ❌ |
+
+# | \*\*6)\*\* Preprocess many reactions + blanks only | ✅ | ✅ | ❌ | ❌ | ✅ | optional | ❌ |
+
+# 
+
+# ---
 
