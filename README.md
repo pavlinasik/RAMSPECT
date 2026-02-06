@@ -1,4 +1,4 @@
-\# RAMspect
+\#RAMspect
 
 
 
@@ -22,7 +22,7 @@ Raman spectra analysis and NNLS-MCR workflow. RAMspect provides a complete pipel
 
 
 
-\### Required inputs for MCR
+\###Required inputs for MCR
 
 The following inputs are mandatory when running MCR:
 
@@ -45,25 +45,25 @@ The following inputs are mandatory when running MCR:
 
 
 
-\### Quick decision table
+\###Quick decision table
+
+The table below summarizes which inputs and flags are required for common workflows.
 
 
 
-|                                              Situation | multiple | preps | mcr | reaction/blank paths | root\_folder | preps\_path | reference\_path |
+| Situation | `multiple` | `preps` | `mcr` | reaction / blank paths | `root\_folder` | `preps\_path` | `reference\_path` |
 
-| -----------------------------------------------------: | :------: | :---: | :-: | :------------------: | :---------: | :--------: | :------------: |
+|:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 
-|          \*\*1)\*\* One raw reaction–blank → full pipeline |     ❌    |   ✅   |  ✅  |           ✅          |      ❌      |  optional  |        ✅       |
+| \*\*1)\*\* One raw reaction–blank → full pipeline | ❌ | ✅ | ✅ | ✅ | ❌ | optional | ✅ |
 
-|        \*\*2)\*\* One pair already preprocessed → MCR only |     ❌    |   ❌   |  ✅  |           ❌          |      ❌      |      ✅     |        ✅       |
+| \*\*2)\*\* One preprocessed pair → MCR only | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
 
-| \*\*3)\*\* Many raw reactions + blanks → preps + avg + MCR |     ✅    |   ✅   |  ✅  |           ❌          |      ✅      |  optional  |        ✅       |
+| \*\*3)\*\* Many raw reactions + blanks → preps + avg + MCR | ✅ | ✅ | ✅ | ❌ | ✅ | optional | ✅ |
 
-|         \*\*4)\*\* Many processed combinations → avg + MCR |     ✅    |   ❌   |  ✅  |           ❌          |      ❌      |      ✅     |        ✅       |
+| \*\*4)\*\* Many processed combinations → avg + MCR | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ |
 
-|           \*\*5)\*\* Preprocess one raw pair only (no MCR) |     ❌    |   ✅   |  ❌  |           ✅          |      ❌      |  optional  |        ❌       |
+| \*\*5)\*\* Preprocess one raw pair only (no MCR) | ❌ | ✅ | ❌ | ✅ | ❌ | optional | ❌ |
 
-|         \*\*6)\*\* Preprocess many reactions + blanks only |     ✅    |   ✅   |  ❌  |           ❌          |      ✅      |  optional  |        ❌       |
-
-
+| \*\*6)\*\* Preprocess many reactions + blanks only | ✅ | ✅ | ❌ | ❌ | ✅ | optional | ❌ |
 
